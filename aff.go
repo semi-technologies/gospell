@@ -58,7 +58,7 @@ type DictConfig struct {
 	Flag              string
 	TryChars          string
 	WordChars         string
-	NoSuggestFlag     rune
+	NoSuggestFlag     string
 	IconvReplacements []string
 	Replacements      [][2]string
 	AffixMap          map[rune]Affix
@@ -109,7 +109,18 @@ func (a DictConfig) Expand(wordAffix string, out []string) ([]string, error) {
 	out = append(out, word)
 	prefixes := make([]Affix, 0, 5)
 	suffixes := make([]Affix, 0, 5)
-	for _, key := range keyString {
+	foundNoSuggest := false
+	noSuggestIncrement := 0
+	for i, key := range keyString {
+		if foundNoSuggest {
+			if noSuggestIncrement == 0 {
+				foundNoSuggest = false
+			} else {
+				noSuggestIncrement -= 1
+				continue
+			}
+		}
+
 		// want keyString to []?something?
 		// then iterate over that
 		af, ok := a.AffixMap[key]
@@ -119,9 +130,23 @@ func (a DictConfig) Expand(wordAffix string, out []string) ([]string, error) {
 				continue
 			}
 			// is it a NoSuggest?
-			if key == a.NoSuggestFlag {
+			// TODO added string isntead of char as nosuggest flag
+			//  not sure if it makes any difference here since no test covers this function
+			foundNoSuggest = true
+			for _, noSuggestFlagSymbol := range a.NoSuggestFlag {
+				if rune(keyString[i+noSuggestIncrement]) != noSuggestFlagSymbol {
+					// no nosuggest
+					foundNoSuggest = false
+					noSuggestIncrement = 0
+					break
+				}
+				noSuggestIncrement += 1
+			}
+			if foundNoSuggest {
+				noSuggestIncrement -= 1
 				continue
 			}
+
 			// no idea
 			return nil, fmt.Errorf("unable to find affix key %v", key)
 		}
@@ -242,12 +267,7 @@ func NewDictConfig(file io.Reader) (*DictConfig, error) {
 			if len(parts) != 2 {
 				return nil, fmt.Errorf("NOSUGGEST stanza had %d fields, expected 2", len(parts))
 			}
-			// should use runes or parse correctly
-			chars := []rune(parts[1])
-			if len(chars) != 1 {
-				return nil, fmt.Errorf("NOSUGGEST stanza had more than one flag: %q", parts[1])
-			}
-			aff.NoSuggestFlag = chars[0]
+			aff.NoSuggestFlag = parts[1]
 		case "WORDCHARS":
 			if len(parts) != 2 {
 				return nil, fmt.Errorf("WORDCHAR stanza had %d fields, expected 2", len(parts))

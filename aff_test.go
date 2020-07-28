@@ -292,3 +292,42 @@ GB
 		}
 	}
 }
+
+func TestExpandNoSuggest(t *testing.T) {
+	sample := `
+SET UTF-8
+TRY esianrtolcdugmphbyfvkwzESIANRTOLCDUGMPHBYFVKWZ'
+
+NOSUGGEST NS
+REP 2
+REP f ph
+REP ph f
+
+PFX A Y 1
+PFX A 0 re .
+
+SFX B Y 2
+SFX B 0 ed [^y]
+SFX B y ied y
+`
+	aff, err := NewDictConfig(strings.NewReader(sample))
+	if err != nil {
+		t.Fatalf("Unable to parse sample: %s", err)
+	}
+
+	cases := []struct {
+		word string
+		want []string
+	}{
+		{"try/NSB", []string{"try", "tried"}},
+	}
+	for pos, tt := range cases {
+		got, err := aff.Expand(tt.word, nil)
+		if err != nil {
+			t.Errorf("%d: affix expansions error: %s", pos, err)
+		}
+		if !reflect.DeepEqual(tt.want, got) {
+			t.Errorf("%d: affix expansion want %v got %v", pos, tt.want, got)
+		}
+	}
+}

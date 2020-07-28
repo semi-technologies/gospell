@@ -258,6 +258,10 @@ func NewDictConfig(file io.Reader) (*DictConfig, error) {
 				return nil, fmt.Errorf("FLAG stanza had %d, expected 1", len(parts))
 			}
 			aff.Flag = parts[1]
+			if aff.Flag == "long" {
+				// Accept the `long' value setting the double extended ASCII character flag type
+				continue
+			}
 			return nil, fmt.Errorf("FLAG stanza not yet supported")
 		case "PFX", "SFX":
 			atype := Prefix

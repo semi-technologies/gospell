@@ -230,7 +230,10 @@ func NewDictConfig(file io.Reader) (*DictConfig, error) {
 				continue
 			}
 			if len(parts) != 3 {
-				return nil, fmt.Errorf("REP stanza had %d fields, expected 2", len(parts))
+				//return nil, fmt.Errorf("REP stanza had %d fields, expected 2", len(parts))
+				// Not sure why this throws an error but aff.Replacements is not used anywhere
+				//  except in tests so lets just ignore these cases for now
+				continue
 			}
 			// we have 3
 			aff.Replacements = append(aff.Replacements, [2]string{parts[1], parts[2]})
